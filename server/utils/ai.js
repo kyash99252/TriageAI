@@ -1,4 +1,6 @@
 import {createAgent, gemini} from "@inngest/agent-kit";
+import dotenv from 'dotenv';
+dotenv.config();
 
 const analyzeTicket = async (ticket) => {
     const supportAgent = createAgent({
@@ -23,9 +25,8 @@ IMPORTANT:
 Repeat: Do not wrap your output in markdown or code fences.`,
     });
 
-    const response =
-        await supportAgent.run(`You are a ticket triage agent. Only return a strict JSON object with no extra text, headers, or markdown.
-        
+    const response = await supportAgent.run(`You are a ticket triage agent. Only return a strict JSON object with no extra text, headers, or markdown.
+
 Analyze the following support ticket and provide a JSON object with:
 
 - summary: A short 1-2 sentence summary of the issue.
@@ -49,14 +50,20 @@ Ticket information:
 - Title: ${ticket.title}
 - Description: ${ticket.description}`);
 
-    const raw = response.output[0].context;
-
     try {
-        const match = raw.match(/```json\s*([\s\S]*?)\s*```/i);
-        const jsonString = match ? match[1] : raw.trim();
+        const rawContent = response?.output?.[0]?.content;
+
+        if (!rawContent || typeof rawContent !== 'string') {
+            console.error("AI response missing 'content'. Full response:", response);
+            return null;
+        }
+
+        const match = rawContent.match(/```json\s*([\s\S]*?)\s*```/i);
+        const jsonString = match ? match[1] : rawContent.trim();
+
         return JSON.parse(jsonString);
     } catch (e) {
-        console.log("Failed to parse JSON from AI response" + e.message);
+        console.error("Failed to parse JSON from AI response:", e.message);
         return null;
     }
 };

@@ -1,86 +1,83 @@
 import { NonRetriableError } from "inngest";
-import { inngest } from "../client";
+import { inngest } from "../client.js";
 import Ticket from "../../models/ticket.js";
-import {sendMail} from "../../utils/mailer.js";
+import { sendMail } from "../../utils/mailer.js";
 import analyzeTicket from "../../utils/ai.js";
 import User from "../../models/user.js";
 
 export const onTicketCreated = inngest.createFunction(
     { id: 'on-ticket-created', retries: 2 },
     { event: 'ticket/created' },
-    async ({event, step}) => {
+    async ({ event, step }) => {
         try {
-            const {ticketId} = event.data;
+            const { ticketId } = event.data;
 
-            const ticket = await step.run('fetch-ticket', async () => {
-                const ticketObject = await Ticket.findById(ticketId);
-                if (!ticket) {
+            const ticket = await step.run('fetch-and-prep-ticket', async () => {
+                const ticketObject = await Ticket.findByIdAndUpdate(
+                    ticketId,
+                    { status: "TODO" },
+                    { new: true }
+                );
+
+                if (!ticketObject) {
                     throw new NonRetriableError('Ticket not found');
                 }
                 return ticketObject;
-            })
+            });
 
-            await step.run('update-ticket-status', async () => {
-                await Ticket.findByIdAndUpdate(ticket._id, {
-                    status: "TODO"
-                })
-            })
+            const aiResponse = await analyzeTicket(ticket);
 
-            const aiResponse = analyzeTicket(ticket);
+            if (!aiResponse || !aiResponse.relatedSkills) {
+                console.log(`AI analysis did not return sufficient data for ticket ${ticket._id}.`);
+                await step.run('mark-ticket-as-needs-review', async () => {
+                    await Ticket.findByIdAndUpdate(ticket._id, { status: "NEEDS_MANUAL_REVIEW" });
+                });
+                return { success: false, reason: "AI analysis failed." };
+            }
 
-            const relatedSkills = await step.run('ai-processing', async() => {
-                let skills = [];
-                if (aiResponse) {
-                    await Ticket.findByIdAndUpdate(ticket._id, {
-                        priority: !['low', 'medium', 'high'].includes(aiResponse.priority) ? 'medium' : aiResponse.priority,
-                        helpfulNotes: aiResponse.helpfulNotes,
-                        status: 'IN_PROGRESS',
-                        relatedSkills: aiResponse.relatedSkills
-                    })
-                    skills = aiResponse.relatedSkills
-                }
-                return skills;
-            })
-
-            const moderator = await step.run('assign-moderator', async () => {
+            const moderator = await step.run('find-moderator', async () => {
                 let user = await User.findOne({
                     role: 'moderator',
                     skills: {
-                        $elemMatch: {
-                            $regex: relatedSkills.join('|'),
-                            $options: 'i'
-                        }
+                        $in: aiResponse.relatedSkills.map(skill => new RegExp(skill, 'i'))
                     }
-                })
+                });
 
                 if (!user) {
-                    user = await User.findOne({
-                        role: 'admin',
-                    })
+                    user = await User.findOne({ role: 'admin' });
                 }
-
-                await Ticket.findByIdAndUpdate(ticket._id, {
-                    assignedTo: user?._id || null
-                })
 
                 return user;
             });
 
+            const finalTicket = await step.run('assign-and-finalize-ticket', async () => {
+                return await Ticket.findByIdAndUpdate(
+                    ticket._id,
+                    {
+                        priority: !['low', 'medium', 'high'].includes(aiResponse.priority) ? 'medium' : aiResponse.priority,
+                        helpfulNotes: aiResponse.helpfulNotes,
+                        status: 'IN_PROGRESS',
+                        relatedSkills: aiResponse.relatedSkills,
+                        assignedTo: moderator?._id || null,
+                    },
+                    { new: true }
+                );
+            });
+
             await step.run('send-email-notification', async () => {
                 if (moderator) {
-                    const finalTicket = await Ticket.findById(ticket._id);
                     await sendMail(
                         moderator.email,
-                        'Ticket assigned successfully.',
-                        `A new ticket is assigned to you ${finalTicket.title}`
-                    )
+                        'New Ticket Assigned to You',
+                        `A new ticket has been assigned to you: "${finalTicket.title}"`
+                    );
                 }
-            })
+            });
 
-            return {success: true};
+            return { success: true };
         } catch (error) {
-            console.error('❌ Error running steps', error.message);
-            return {success: false};
+            console.error('❌ Error running on-ticket-created function', error);
+            throw error;
         }
     }
-)
+);

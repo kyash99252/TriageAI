@@ -1,0 +1,88 @@
+/* src/index.css (or src/globals.css or whatever your main CSS entry point is) */
+
+/*
+  Import Tailwind CSS. The @tailwindcss/vite plugin will process this.
+  This replaces the individual @tailwind base, @tailwind components, @tailwind utilities directives
+  when using this specific plugin setup method.
+*/
+@import "tailwindcss";
+
+/*
+  Define your ShadCN UI CSS variables AFTER importing Tailwind.
+  This ensures they are available for Tailwind to use and for your components.
+*/
+@layer base {
+  :root {
+    /* Light Mode Variables - HSL Format */
+    --background: 0 0% 100%;
+    --foreground: 240 10% 3.9%;
+    /* ... other light mode variables ... */
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --primary: 240 5.9% 10%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
+    --accent: 240 4.8% 95.9%;
+    --accent-foreground: 240 5.9% 10%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --ring: 240 5.9% 10%;
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    /* Dark Mode Variables - HSL Format */
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+    /* ... other dark mode variables ... */
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    --card: 240 10% 3.9%;
+    --card-foreground: 0 0% 98%;
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 240 5.9% 10%;
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+    --accent: 240 3.7% 15.9%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --ring: 0 0% 98%;
+  }
+}
+
+/*
+  Apply base body styles using direct CSS properties for robustness.
+  This should still work correctly as Tailwind processes the @import
+  and then these rules are applied.
+*/
+@layer base {
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+}
+
+/* Your custom utility classes - these should still work */
+@layer utilities {
+  .metallic-shine-hover { /* ... */ }
+  .metallic-glow-hover { /* ... */ }
+  .subtle-shine-hover { /* ... */ }
+  /* (Keep your metallic hover styles as defined in the previous good answer) */
+}
