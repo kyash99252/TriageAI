@@ -25,7 +25,10 @@ export const onTicketCreated = inngest.createFunction(
                 return ticketObject;
             });
 
+            console.log(`Processing ticket ${ticket._id} with title "${ticket.title}"`);
+
             const aiResponse = await analyzeTicket(ticket);
+            console.log(`AI analysis for ticket ${ticket._id}:`, aiResponse);
 
             if (!aiResponse || !aiResponse.relatedSkills) {
                 console.log(`AI analysis did not return sufficient data for ticket ${ticket._id}.`);
