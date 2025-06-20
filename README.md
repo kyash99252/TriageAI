@@ -40,7 +40,7 @@ GEMINI_API_KEY=your_gemini_api_key
 
 ### 1. Clone the Repository
 ```sh
-git clone https://github.com/yourusername/TriageAI.git
+git clone https://github.com/kyash99252/TriageAI.git
 cd TriageAI
 ```
 
@@ -113,10 +113,6 @@ Contributions are welcome! Please open issues or submit pull requests for new fe
 3. Commit your changes (`git commit -m 'Add feature'`)
 4. Push to the branch (`git push origin feature/your-feature`)
 5. Open a Pull Request
-
-## 📄 License
-
-This project is licensed under the ISC License.
 
 ## 🙏 Acknowledgements
 
